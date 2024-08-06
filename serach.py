@@ -9,9 +9,15 @@ excel_file_path = 'نتيجة الثانوية 24.xlsx'  # Replace with the actu
 # Load the Excel file into a pandas DataFrame
 df = pd.read_excel(excel_file_path)
 
-# Define a function to search by partial name and get the student details
-def search_by_partial_name(partial_name):
-    filtered_df = df[df['الاسم'].str.contains(partial_name, na=False)]
+# Define a function to search by name or student ID and get the student details
+def search_students(search_type, search_value):
+    if search_type == 'name':
+        filtered_df = df[df['الاسم'].str.contains(search_value, na=False)]
+    elif search_type == 'student_id':
+        filtered_df = df[df['رقم الجلوس'] == search_value]
+    else:
+        return []  # Invalid search type
+
     results = []
     for index, row in filtered_df.iterrows():
         percentage = (row['الدرجة'] / 410) * 100  # Calculate the percentage
@@ -29,16 +35,16 @@ def search_by_partial_name(partial_name):
 @app.route('/search', methods=['GET'])
 def search():
     name = request.args.get('name')
+    student_id = int(request.args.get('student_id'))
+
     if name:
-        students = search_by_partial_name(name)
+        students = search_students('name', name)
+        return jsonify(students)
+    elif student_id:
+        students = search_students('student_id', student_id)
         return jsonify(students)
     else:
-        return jsonify({'error': 'Name parameter is required'}), 400
-
-@app.route('/search/<name>', methods=['GET'])
-def search_by_name_route(name):
-    students = search_by_partial_name(name)
-    return jsonify(students)
+        return jsonify({'error': 'Either name or student_id parameter is required'}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
